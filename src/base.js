@@ -24,12 +24,11 @@ export default class Base {
   // 创建场景
   initScene () {
     const scene = this.scene = new THREE.Scene()
-    scene.add(new THREE.AxesHelper(3))
   }
   // 创建相机
   initCamera () {
     const camera = this.camera = new THREE.PerspectiveCamera(45, this.width / this.height, 0.1, 100)
-    camera.position.set(20, 20, 20)
+    camera.position.set(15, 15, 15)
     camera.lookAt(0, 0, 0)
   }
   // 创建光源

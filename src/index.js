@@ -2,6 +2,14 @@ import * as THREE from 'three'
 import anime from 'animejs'
 import Base from './base'
 import { rotateAroundWorldAxis, XYZ_VALUE, AxesEnum, Axes, getCubeFace, colors } from './utils'
+import { Pane } from 'tweakpane'
+
+const pane = new Pane({
+  title: '调试'
+})
+const debug = {
+  level: 3
+}
 
 class App extends Base {
   startPoint = null
@@ -15,6 +23,7 @@ class App extends Base {
 
   constructor () {
     super()
+    this.initDebug()
     this.initCube()
     // this.initLight()
     window.addEventListener('mousedown', this.onMouseDown.bind(this))
@@ -28,12 +37,13 @@ class App extends Base {
     return logic.map((item, index) => item ? materials[index] : defaultMaterial)
   }
 
-  initCube () {
+  initCube (level = 3) {
+    this.cube && this.scene.remove(this.cube)
     const cube = this.cube = new THREE.Group()
     this.scene.add(cube)
     // 小立方体
     const size = this.cubeSize, gutter = 0
-    const w = 5, h = 5, d = 5
+    const w = level, h = level, d = level
     const offsetWidth =  w * size / 2 - size / 2
     const offsetHeight = h * size / 2 - size / 2
     const offsetDepth = d * size / 2 - size / 2
@@ -198,6 +208,25 @@ class App extends Base {
   onMouseUp (e) {
     // this.startPoint = null
     // this.movePoint = null
+  }
+
+  initDebug () {
+    pane.addInput(debug, 'level', {
+      label: '魔方难度',
+      options: {
+        '二阶': 2,
+        '三阶': 3,
+        '四阶': 4,
+        '五阶': 5,
+        '六阶': 6,
+        '七阶': 7,
+      }
+    }).on('change', (ev) => {
+      const lev = ev.value
+      this.initCube(lev)
+      this.camera.position.set(lev * 5, lev * 5, lev * 5)
+      this.camera.lookAt(0, 0, 0)
+    })
   }
 }
 
