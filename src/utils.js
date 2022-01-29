@@ -17,3 +17,62 @@ export const rotateAroundWorldAxis = (origin, vector, radius) => {
   ) 
   return matrix4
 }
+
+export const XYZ_VALUE = 0 ^ 1 ^ 2
+
+export const AxesEnum = {
+  0: 'x',
+  1: 'y',
+  2: 'z',
+  'x': 0,
+  'y': 1,
+  'z': 2,
+}
+
+export const Axes = {
+  'x+': new THREE.Vector3(1, 0, 0),
+  'x-': new THREE.Vector3(-1, 0, 0),
+  'y+': new THREE.Vector3(0, 1, 0),
+  'y-': new THREE.Vector3(0, -1, 0),
+  'z+': new THREE.Vector3(0, 0, 1),
+  'z-': new THREE.Vector3(0, 0, -1)
+}
+
+const roundRectByArc = (ctx, ...[x, y, w, h, r]) => {
+  const min = Math.min(w, h), PI = Math.PI
+  if (r > min / 2) r = min / 2
+  ctx.beginPath()
+  ctx.moveTo(x + r, y)
+  ctx.lineTo(x + r, y)
+  ctx.lineTo(x + w - r, y)
+  ctx.arc(x + w - r, y + r, r, -PI / 2, 0)
+  ctx.lineTo(x + w, y + h - r)
+  ctx.arc(x + w - r, y + h - r, r, 0, PI / 2)
+  ctx.lineTo(x + r, y + h)
+  ctx.arc(x + r, y + h - r, r, PI / 2, PI)
+  ctx.lineTo(x, y + r)
+  ctx.arc(x + r, y + r, r, PI, -PI / 2)
+  ctx.closePath()
+}
+
+export const colors = [
+  '#359049',
+  '#4772f5',
+  '#c7472e',
+  '#ee6c15',
+  '#ffffff',
+  '#f4c812',
+]
+
+export const getCubeFace = (color) => {
+  const size = 256, gutter = 10, radius = 15
+  const canvas = document.createElement('canvas')
+  canvas.width = canvas.height = size
+  const ctx = canvas.getContext('2d')
+  ctx.fillStyle = '#000'
+  ctx.fillRect(0, 0, size, size)
+  ctx.fillStyle = color
+  roundRectByArc(ctx, gutter, gutter, size - gutter * 2, size - gutter * 2, radius)
+  ctx.fill()
+  return canvas
+}
