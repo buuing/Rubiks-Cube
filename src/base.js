@@ -9,6 +9,7 @@ export default class Base {
     this.initRenderer()
     this.initScene()
     this.initCamera()
+    this.initControls()
     this.render()
   }
   // 创建渲染器
@@ -24,6 +25,7 @@ export default class Base {
   // 创建场景
   initScene () {
     const scene = this.scene = new THREE.Scene()
+    scene.add(new THREE.AxesHelper(10))
   }
   // 创建相机
   initCamera () {
@@ -40,14 +42,16 @@ export default class Base {
   initControls () {
     const { renderer, camera } = this
     const controls = this.controls = new OrbitControls(camera, renderer.domElement)
-    controls.target = new THREE.Vector3(-10, 80, 0)
+    controls.target = new THREE.Vector3(0, 0, 0)
     controls.enableZoom = true
     controls.rotateSpeed = 1
+    // controls.enableDamping = true
     controls.update()
   }
   // 渲染
   render () {
     const { renderer, scene, camera } = this
+    this.controls.update()
     renderer.clear()
     renderer.render(scene, camera)
     window.requestAnimationFrame(() => {

@@ -4,11 +4,10 @@ import Base from './base'
 import { rotateAroundWorldAxis, XYZ_VALUE, AxesEnum, Axes, getCubeFace, colors } from './utils'
 import { Pane } from 'tweakpane'
 
-const pane = new Pane({
-  title: '调试'
-})
+const pane = new Pane()
 const debug = {
-  level: 3
+  level: 3,
+  rotateTime: 300
 }
 
 class App extends Base {
@@ -20,6 +19,7 @@ class App extends Base {
   smallCube = []
   cubeSize = 2
   prevTime = 0
+  shuffleNum = 0
 
   constructor () {
     super()
@@ -31,6 +31,7 @@ class App extends Base {
     window.addEventListener('mousemove', this.onMouseMove.bind(this))
     window.addEventListener('touchmove', this.onMouseMove.bind(this))
     window.addEventListener('mouseup', this.onMouseUp.bind(this))
+    window.addEventListener('touchend', this.onMouseUp.bind(this))
   }
 
   computeMaterial (logic, materials, defaultMaterial) {
@@ -106,9 +107,10 @@ class App extends Base {
         minIndex = index
       }
     })
+    const direction = planeNormalIndex % 2 === 0 ? -1 : 1
     const planeNormalKey = planeNormalIndex / 2 >> 0
     const planeNormal = AxesEnum[planeNormalKey]
-    // console.log('平面法向量', planeNormal)
+    // console.log('平面法向量', planeNormal, planeNormalIndex)
     const rotateAxisKey = minIndex / 2 >> 0
     const rotateDirection = ['x+', 'x-', 'y+', 'y-', 'z+', 'z-'][minIndex]
     // console.log('旋转方向', rotateDirection)
@@ -137,7 +139,7 @@ class App extends Base {
     if (!vec3) return this.clearState()
     this.smallCube.forEach(item => {
       if (this.touchCube.position[site] === item.position[site]) {
-        this.moveCube(item, vec3)
+        this.moveCube(item, vec3, direction)
       }
     })
   }
@@ -149,32 +151,47 @@ class App extends Base {
   }
 
   // 移动小方块
-  moveCube (cube, vec3) {
-    let prev = 0, data = { progress: 0 }
-    anime({
-      targets: data,
-      duration: 300,
-      progress: 1,
-      easing: 'easeOutQuad',
-      update: () => {
-        const interval = data.progress - prev
-        prev = data.progress
-        const matrix = rotateAroundWorldAxis(
-          new THREE.Vector3(0, 0, 0),
-          new THREE.Vector3(-vec3.x, -vec3.y, -vec3.z),
-          interval * Math.PI / 2
-        )
-        cube.applyMatrix4(matrix)
-      },
-      complete: () => {
-        const p = cube.position
-        cube.position.set(Math.round(p.x), Math.round(p.y), Math.round(p.z))
-        this.clearState()
-      }
+  moveCube (cube, vec3, direction) {
+    return new Promise(resolve => {
+      let prev = 0, data = { progress: 0 }
+      anime({
+        targets: data,
+        duration: debug.rotateTime,
+        progress: 1,
+        easing: 'easeOutQuad',
+        update: () => {
+          const interval = data.progress - prev
+          prev = data.progress
+          const matrix = rotateAroundWorldAxis(
+            new THREE.Vector3(0, 0, 0),
+            new THREE.Vector3(vec3.x * direction, vec3.y * direction, vec3.z * direction),
+            interval * Math.PI / 2
+          )
+          cube.applyMatrix4(matrix)
+        },
+        complete: () => {
+          const p = cube.position
+          cube.position.set(Math.round(p.x), Math.round(p.y), Math.round(p.z))
+          this.clearState()
+          resolve()
+        }
+      })
     })
   }
 
+  getMouseSite (e) {
+    const x = (e.touches ? e.touches[0] : e).clientX
+    const y = (e.touches ? e.touches[0] : e).clientY
+    this.mouse.x = (x / this.width - 0.5) * 2
+    this.mouse.y = -(y / this.height - 0.5) * 2
+  }
+
   onMouseDown (e) {
+    this.getMouseSite(e)
+    this.raycaster.setFromCamera(this.mouse, this.camera)
+    const intersects = this.raycaster.intersectObjects([this.cube])
+    this.controls.enabled = !intersects.length
+    // 兼容移动端
     this.onMouseMove(e)
     // 旋转
     if (this.intersect1 && this.intersect2 && !this.isRotating) {
@@ -188,10 +205,8 @@ class App extends Base {
   }
 
   onMouseMove (e) {
-    const x = (e.touches ? e.touches[0] : e).clientX
-    const y = (e.touches ? e.touches[0] : e).clientY
-    this.mouse.x = (x / this.width - 0.5) * 2
-    this.mouse.y = -(y / this.height - 0.5) * 2
+    if (!this.cube) return
+    this.getMouseSite(e)
     this.raycaster.setFromCamera(this.mouse, this.camera)
     const intersects = this.raycaster.intersectObjects(this.cube.children)
     this.intersect1 = intersects[0]
@@ -206,13 +221,39 @@ class App extends Base {
   }
 
   onMouseUp (e) {
-    // this.startPoint = null
-    // this.movePoint = null
+    this.clearState()
+    this.controls.enabled = true
+  }
+
+  shuffleCube () {
+    console.log(this.shuffleNum)
+    if (this.shuffleNum++ >= 20) {
+      this.shuffleNum = 0
+      this.btn1.disabled = false
+      debug.rotateTime = 300
+      this.isRotating = false
+      return
+    }
+    const randomDirection = Math.random() * 2 >> 0 ? 1 : -1
+    const keySite = ['x', 'y', 'z'][Math.random() * 3 >> 0]
+    const numSite = [-2, 0, 2][Math.random() * 3 >> 0]
+
+    const allPromise = []
+    this.smallCube.forEach((cube, i) => {
+      if (cube.position[keySite] === numSite) {
+        const p = this.moveCube(cube, Axes[`${keySite}+`], randomDirection)
+        allPromise.push(p)
+      }
+    })
+    Promise.all(allPromise).then(_ => {
+      this.shuffleCube()
+    })
   }
 
   initDebug () {
-    pane.addInput(debug, 'level', {
-      label: '魔方难度',
+    const f1 = pane.addFolder({ title: '选项' })
+    f1.addInput(debug, 'level', {
+      label: '难度',
       options: {
         '二阶': 2,
         '三阶': 3,
@@ -227,6 +268,25 @@ class App extends Base {
       this.camera.position.set(lev * 5, lev * 5, lev * 5)
       this.camera.lookAt(0, 0, 0)
     })
+    const f2 = pane.addFolder({ title: '操作' })
+    const btn0 = f2.addButton({
+      title: '还原',
+    }).on('click', () => {
+      this.initCube(debug.level)
+    })
+    this.btn1 = f2.addButton({
+      title: '打乱魔方',
+    }).on('click', () => {
+      this.btn1.disabled = true
+      debug.rotateTime = 200
+      this.isRotating = true
+      this.shuffleCube()
+    })
+    // const btn2 = f2.addButton({
+    //   title: '自动还原',
+    // }).on('click', () => {
+    //   btn2.disabled = true
+    // })
   }
 }
 
