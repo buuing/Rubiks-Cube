@@ -25,6 +25,6 @@ export default {
       contentBase: './',
       openPage: '/index.html'
     }),
-    // terser()
+    terser()
   ]
 }

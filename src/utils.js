@@ -56,12 +56,12 @@ const roundRectByArc = (ctx, ...[x, y, w, h, r]) => {
 }
 
 export const colors = [
-  '#359049',
   '#4772f5',
+  '#359049',
   '#c7472e',
   '#ee6c15',
-  '#ffffff',
   '#f4c812',
+  '#ffffff',
 ]
 
 export const getCubeFace = (color) => {

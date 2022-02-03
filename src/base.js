@@ -25,7 +25,6 @@ export default class Base {
   // 创建场景
   initScene () {
     const scene = this.scene = new THREE.Scene()
-    scene.add(new THREE.AxesHelper(10))
   }
   // 创建相机
   initCamera () {
@@ -45,7 +44,6 @@ export default class Base {
     controls.target = new THREE.Vector3(0, 0, 0)
     controls.enableZoom = true
     controls.rotateSpeed = 1
-    // controls.enableDamping = true
     controls.update()
   }
   // 渲染
