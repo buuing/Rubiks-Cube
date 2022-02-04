@@ -4,22 +4,29 @@ import Base from './base'
 import { rotateAroundWorldAxis, XYZ_VALUE, AxesEnum, Axes, getCubeFace, colors } from './utils'
 import { Pane } from 'tweakpane'
 
-const pane = new Pane()
+const pane: any = new Pane()
 const debug = {
   level: 3,
   rotateTime: 300
 }
 
-class App extends Base {
-  startPoint = null
-  movePoint = null
+class CreepCube extends Base {
+  intersect1: THREE.Intersection | null = null
+  intersect2: THREE.Intersection | null = null
+  startPlane: THREE.Vector3 | undefined = undefined
+  startPoint: THREE.Vector3 | null = null
+  movePoint: THREE.Vector3 | null = null
+  touchCube: THREE.Mesh | null = null
   isRotating = false
   mouse = new THREE.Vector2(0, 0)
   raycaster = new THREE.Raycaster()
-  smallCube = []
+  cube = null as unknown as THREE.Group
+  smallCube: THREE.Mesh[] = []
   cubeSize = 2
   prevTime = 0
-  shuffleNum = 0
+  inp1: any
+  btn1: any
+  btn2: any
 
   constructor () {
     super()
@@ -34,8 +41,12 @@ class App extends Base {
     window.addEventListener('touchend', this.onMouseUp.bind(this))
   }
 
-  computeMaterial (logic, materials, defaultMaterial) {
-    return logic.map((item, index) => item ? materials[index] : defaultMaterial)
+  computeMaterial (
+    rules: boolean[],
+    materials: THREE.MeshBasicMaterial[],
+    defaultMaterial: THREE.MeshBasicMaterial
+  ) {
+    return rules.map((item, index) => item ? materials[index] : defaultMaterial)
   }
 
   initCube (level = 3) {
@@ -95,11 +106,12 @@ class App extends Base {
 
   // 旋转逻辑
   computeRotation () {
-    const sub = this.movePoint.sub(this.startPoint)
-    let minAngle = Infinity, minIndex = 0, planeNormalIndex
+    const sub = this.movePoint?.sub(this.startPoint!)
+    if (!sub) return
+    let minAngle = Infinity, minIndex = 0, planeNormalIndex: number = NaN
     Object.values(Axes).forEach((vec3, index) => {
       const angle = sub.angleTo(vec3)
-      if (vec3.angleTo(this.startPlane) === 0) {
+      if (vec3.angleTo(this.startPlane!) === 0) {
         planeNormalIndex = index
       }
       if (angle < minAngle) {
@@ -135,28 +147,30 @@ class App extends Base {
       if (rotationVector === 'x+') rotationAxis = 'y-'
     }
     if (!rotationAxis) return
-    this.rotateCube(this.touchCube, rotationAxis, direction)
+    this.rotateCube(this.touchCube!, rotationAxis as keyof typeof Axes, direction)
   }
 
   // 根据立方体索引反推层数
-  getStoreyByIndex (axis, i) {
+  getStoreyByIndex (axis: 'x' | 'y' | 'z', i: number) {
     console.log(axis)
     const lev = debug.level
     const squa = lev ** 2
     const _k = lev - 1
     const rules = {
-      x: i => _k - ((i % squa) % lev),
-      y: i => _k - (i / squa >> 0),
-      z: i => _k - ((i % squa) / lev >> 0)
+      x: (i: number) => _k - ((i % squa) % lev),
+      y: (i: number) => _k - (i / squa >> 0),
+      z: (i: number) => _k - ((i % squa) / lev >> 0)
     }
     return rules[axis](i)
   }
 
   // 根据层数获取立方体
-  getCubesByStorey (axis, storey = 0, sort = 1) {
+  getCubesByStorey (axis: 'x' | 'y' | 'z', storey = 0, sort = 1) {
     const lev = debug.level
     const squa = lev ** 2
-    const rules = {
+    const rules: {
+      [key in typeof axis]: ((n: unknown, i: number) => boolean)[]
+    } = {
       x: [],
       y: [],
       z: [],
@@ -175,13 +189,13 @@ class App extends Base {
   /**
    * 旋转逻辑
    */
-  async rotateCube (touchCube, rotationAxis, direction) {
+  async rotateCube (touchCube: THREE.Mesh, rotationAxis: keyof typeof Axes, direction: 1 | -1) {
     if (this.isRotating) return
     this.isRotating = true
     const vec3 = Axes[rotationAxis]
     const axis = rotationAxis.slice(0, 1)
     if (!vec3) return this.clearState()
-    const allPromise = []
+    const allPromise: Promise<void>[] = []
     this.smallCube.forEach(item => {
       if (touchCube.position[axis] === item.position[axis]) {
         allPromise.push(this.moveCube(item, vec3, direction))
@@ -198,7 +212,7 @@ class App extends Base {
   }
 
   // 移动小方块
-  moveCube (cube, vec3, direction) {
+  moveCube (cube: THREE.Mesh, vec3: THREE.Vector3, direction: 1 | -1): Promise<void> {
     return new Promise(resolve => {
       let prev = 0, data = { progress: 0 }
       anime({
@@ -225,14 +239,14 @@ class App extends Base {
     })
   }
 
-  getMouseSite (e) {
-    const x = (e.touches ? e.touches[0] : e).clientX
-    const y = (e.touches ? e.touches[0] : e).clientY
+  getMouseSite (e: MouseEvent | TouchEvent) {
+    const x = (e['touches'] ? e['touches'][0] : e).clientX
+    const y = (e['touches'] ? e['touches'][0] : e).clientY
     this.mouse.x = (x / this.width - 0.5) * 2
     this.mouse.y = -(y / this.height - 0.5) * 2
   }
 
-  onMouseDown (e) {
+  onMouseDown (e: MouseEvent | TouchEvent) {
     this.getMouseSite(e)
     this.raycaster.setFromCamera(this.mouse, this.camera)
     const intersects = this.raycaster.intersectObjects([this.cube])
@@ -244,13 +258,13 @@ class App extends Base {
       // 起始点
       this.startPoint = this.intersect1.point
       // 起始平面
-      this.startPlane = this.intersect1.face.normal
+      this.startPlane = this.intersect1.face?.normal
       // 触摸的小方块
-      this.touchCube = this.intersect2.object
+      this.touchCube = this.intersect2.object as THREE.Mesh
     }
   }
 
-  onMouseMove (e) {
+  onMouseMove (e: MouseEvent | TouchEvent) {
     if (!this.cube) return
     this.getMouseSite(e)
     this.raycaster.setFromCamera(this.mouse, this.camera)
@@ -265,7 +279,7 @@ class App extends Base {
     }
   }
 
-  onMouseUp (e) {
+  onMouseUp (e: MouseEvent | TouchEvent) {
     this.startPoint = null
     this.movePoint = null
     this.controls.enabled = true
@@ -282,7 +296,7 @@ class App extends Base {
       const axis = ['x', 'y', 'z'][i % 3]
       await this.rotateCube(
         this.smallCube[Math.random() * this.smallCube.length >> 0],
-        `${axis}${Math.random() - 0.5 > 0 ? '+' : '-'}`,
+        `${axis}${Math.random() - 0.5 > 0 ? '+' : '-'}` as keyof typeof Axes,
         Math.random() - 0.5 > 0 ? 1 : -1
       )
     }
@@ -305,7 +319,7 @@ class App extends Base {
         '六阶': 6,
         '七阶': 7,
       }
-    }).on('change', (ev) => {
+    }).on('change', (ev: any) => {
       const lev = ev.value
       this.initCube(lev)
       this.camera.position.set(lev * 5, lev * 5, lev * 5)
@@ -313,7 +327,7 @@ class App extends Base {
     })
     const f2 = pane.addFolder({ title: '操作' })
     this.btn1 = f2.addButton({
-      title: '还原',
+      title: '重置',
     }).on('click', () => {
       this.initCube(debug.level)
     })
@@ -325,4 +339,4 @@ class App extends Base {
   }
 }
 
-new App()
+new CreepCube()

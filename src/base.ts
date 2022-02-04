@@ -2,10 +2,15 @@ import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
 
 export default class Base {
+  width: number
+  height: number
+  renderer = null as unknown as THREE.WebGLRenderer
+  scene = null as unknown as THREE.Scene
+  camera = null as unknown as THREE.PerspectiveCamera
+  controls = null as unknown as OrbitControls
   constructor () {
     this.width = window.innerWidth
     this.height = window.innerHeight
-    this.clock = new THREE.Clock()
     this.initRenderer()
     this.initScene()
     this.initCamera()
@@ -13,7 +18,7 @@ export default class Base {
     this.render()
   }
   // 创建渲染器
-  initRenderer (canvas) {
+  initRenderer () {
     const renderer = this.renderer = new THREE.WebGLRenderer({
       antialias: true,
       alpha: true

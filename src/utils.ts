@@ -1,6 +1,6 @@
 import * as THREE from 'three'
 
-export const rotateAroundWorldAxis = (origin, vector, radius) => {
+export const rotateAroundWorldAxis = (origin: THREE.Vector3, vector: THREE.Vector3, radius: number) => {
   vector.normalize()
   const u = vector.x
   const v = vector.y
@@ -38,7 +38,7 @@ export const Axes = {
   'z-': new THREE.Vector3(0, 0, -1)
 }
 
-const roundRectByArc = (ctx, ...[x, y, w, h, r]) => {
+const roundRectByArc = (ctx: CanvasRenderingContext2D, ...[x, y, w, h, r]: number[]) => {
   const min = Math.min(w, h), PI = Math.PI
   if (r > min / 2) r = min / 2
   ctx.beginPath()
@@ -64,11 +64,11 @@ export const colors = [
   '#ffffff',
 ]
 
-export const getCubeFace = (color) => {
+export const getCubeFace = (color: string) => {
   const size = 256, gutter = 10, radius = 15
   const canvas = document.createElement('canvas')
   canvas.width = canvas.height = size
-  const ctx = canvas.getContext('2d')
+  const ctx = canvas.getContext('2d')!
   ctx.fillStyle = '#000'
   ctx.fillRect(0, 0, size, size)
   ctx.fillStyle = color
