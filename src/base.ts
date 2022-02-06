@@ -4,10 +4,11 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
 export default class Base {
   width: number
   height: number
-  renderer = null as unknown as THREE.WebGLRenderer
-  scene = null as unknown as THREE.Scene
-  camera = null as unknown as THREE.PerspectiveCamera
-  controls = null as unknown as OrbitControls
+  renderer!: THREE.WebGLRenderer
+  scene!: THREE.Scene
+  camera!: THREE.PerspectiveCamera
+  controls!: OrbitControls
+
   constructor () {
     this.width = window.innerWidth
     this.height = window.innerHeight
@@ -47,7 +48,7 @@ export default class Base {
     const { renderer, camera } = this
     const controls = this.controls = new OrbitControls(camera, renderer.domElement)
     controls.target = new THREE.Vector3(0, 0, 0)
-    controls.enableZoom = true
+    controls.enableZoom = false
     controls.rotateSpeed = 1
     controls.update()
   }

@@ -6,10 +6,22 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>魔方小游戏</title>
   <style>
-    body, html { overflow: hidden; }
+    body, html {
+      margin: 0;
+      overflow: hidden;
+      background-color: #444;
+      background-image: radial-gradient(circle, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.8) 100%);
+      background-position: center center;
+      background-repeat: no-repeat;
+      background-attachment: fixed;
+      background-size: cover;
+    }
   </style>
 </head>
-<body style="margin: 0">
+<body>
   <script src="./dist/index.umd.js"></script>
+  <script>
+    new CreepCube()
+  </script>
 </body>
 </html>

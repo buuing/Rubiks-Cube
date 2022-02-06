@@ -1,4 +1,6 @@
+import { resolve } from 'path/posix'
 import * as THREE from 'three'
+import { LOGO } from './config'
 
 export const rotateAroundWorldAxis = (origin: THREE.Vector3, vector: THREE.Vector3, radius: number) => {
   vector.normalize()
@@ -61,11 +63,16 @@ export const colors = [
   '#c7472e',
   '#ee6c15',
   '#f4c812',
-  '#ffffff',
+  '#e5e5e5',
 ]
 
-export const getCubeFace = (color: string) => {
-  const size = 256, gutter = 10, radius = 15
+export const getFaceColor = (
+  color: string,
+  gutter = 5,
+  radius = 10,
+  logo = false
+): HTMLCanvasElement | Promise<HTMLCanvasElement> => {
+  const size = 256
   const canvas = document.createElement('canvas')
   canvas.width = canvas.height = size
   const ctx = canvas.getContext('2d')!
@@ -74,5 +81,13 @@ export const getCubeFace = (color: string) => {
   ctx.fillStyle = color
   roundRectByArc(ctx, gutter, gutter, size - gutter * 2, size - gutter * 2, radius)
   ctx.fill()
-  return canvas
+  if (!logo) return canvas
+  else return new Promise((resolve, reject) => {
+    const img = new Image()
+    img.onload = () => {
+      ctx.drawImage(img, 0, 0, size, size)
+      resolve(canvas)
+    }
+    img.src = LOGO
+  })
 }

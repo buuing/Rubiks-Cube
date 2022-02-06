@@ -1,7 +1,7 @@
 import * as THREE from 'three'
 import anime from 'animejs'
 import Base from './base'
-import { rotateAroundWorldAxis, XYZ_VALUE, AxesEnum, Axes, getCubeFace, colors } from './utils'
+import { rotateAroundWorldAxis, XYZ_VALUE, AxesEnum, Axes, getFaceColor, colors } from './utils'
 import { Pane } from 'tweakpane'
 
 const pane: any = new Pane()
@@ -10,7 +10,7 @@ const debug = {
   rotateTime: 300
 }
 
-class CreepCube extends Base {
+export default class CreepCube extends Base {
   intersect1: THREE.Intersection | null = null
   intersect2: THREE.Intersection | null = null
   startPlane: THREE.Vector3 | undefined = undefined
@@ -18,15 +18,15 @@ class CreepCube extends Base {
   movePoint: THREE.Vector3 | null = null
   touchCube: THREE.Mesh | null = null
   isRotating = false
+  isShuffling = false
+  isSolving = false
   mouse = new THREE.Vector2(0, 0)
   raycaster = new THREE.Raycaster()
-  cube = null as unknown as THREE.Group
-  smallCube: THREE.Mesh[] = []
+  box!: THREE.Group
+  cubes: THREE.Mesh[] = []
+  coordinate: THREE.Vector3[] = []
   cubeSize = 2
   prevTime = 0
-  inp1: any
-  btn1: any
-  btn2: any
 
   constructor () {
     super()
@@ -44,39 +44,48 @@ class CreepCube extends Base {
   computeMaterial (
     rules: boolean[],
     materials: THREE.MeshBasicMaterial[],
-    defaultMaterial: THREE.MeshBasicMaterial
+    defaultMaterial: THREE.MeshBasicMaterial,
+    logoMaterial?: THREE.MeshBasicMaterial,
   ) {
-    return rules.map((item, index) => item ? materials[index] : defaultMaterial)
+    return rules.map((item, index) => item
+      ? logoMaterial || materials[index] : defaultMaterial)
   }
 
-  initCube (level = 3) {
-    this.cube && this.scene.remove(this.cube)
-    this.smallCube = []
-    const cube = this.cube = new THREE.Group()
-    this.scene.add(cube)
+  async initCube (level = 3) {
+    this.box && this.scene.remove(this.box)
+    this.cubes = []
+    const box = this.box = new THREE.Group()
+    this.scene.add(box)
     // 小立方体
-    const size = this.cubeSize, gutter = 0
+    const size = this.cubeSize, gutter = 5, radius = 10
     const w = level, h = level, d = level
     const offsetWidth =  w * size / 2 - size / 2
     const offsetHeight = h * size / 2 - size / 2
     const offsetDepth = d * size / 2 - size / 2
-    const geometry = new THREE.BoxGeometry(size - gutter, size - gutter, size - gutter)
+    const geometry = new THREE.BoxGeometry(size, size, size)
+    // 材质
     const materials = colors.map(color => {
-      const texture = new THREE.Texture(getCubeFace(color))
+      const canvas = getFaceColor(color, gutter, radius) as HTMLCanvasElement
+      const texture = new THREE.Texture(canvas)
       texture.needsUpdate = true
       // texture.generateMipmaps = false
       return new THREE.MeshBasicMaterial({ map: texture })
     })
     const defaultMaterial = new THREE.MeshBasicMaterial({ color: '#000' })
+    // const logo = await getFaceColor('#edc847', gutter, radius, true)
+    // const texture = new THREE.Texture(logo)
+    // texture.needsUpdate = true
+    // const logoMaterial = new THREE.MeshBasicMaterial({ map: texture })
     for (let i = 0; i < d; i++) {
       for (let j = 0; j < w * h; j++) {
+        const index = i * w * h + j
         const currMaterial = this.computeMaterial([
           (j + 1) % w === 0,
           j % w === 0,
           i === d - 1,
           i === 0,
           j + w >= w * h,
-          j < w
+          j < w,
         ], materials, defaultMaterial)
         const mesh = new THREE.Mesh(geometry, currMaterial)
         mesh.position.set(
@@ -84,8 +93,10 @@ class CreepCube extends Base {
           size * i - offsetDepth,
           (j / w >> 0) * size - offsetHeight,
         )
-        cube.add(mesh)
-        this.smallCube.push(mesh)
+        mesh.name = String(index)
+        this.box.add(mesh)
+        this.cubes.push(mesh)
+        this.coordinate[index] = mesh.position.clone()
       }
     }
     // 外壳
@@ -101,7 +112,7 @@ class CreepCube extends Base {
         transparent: true
       })
     )
-    cube.add(outside)
+    box.add(outside)
   }
 
   // 旋转逻辑
@@ -152,7 +163,6 @@ class CreepCube extends Base {
 
   // 根据立方体索引反推层数
   getStoreyByIndex (axis: 'x' | 'y' | 'z', i: number) {
-    console.log(axis)
     const lev = debug.level
     const squa = lev ** 2
     const _k = lev - 1
@@ -183,7 +193,7 @@ class CreepCube extends Base {
     }
     storey = sort > 0 ? storey : lev - storey - 1
     const rule = rules[axis][storey]
-    return this.smallCube.filter(rule)
+    return this.cubes.filter(rule)
   }
 
   /**
@@ -196,13 +206,14 @@ class CreepCube extends Base {
     const axis = rotationAxis.slice(0, 1)
     if (!vec3) return this.clearState()
     const allPromise: Promise<void>[] = []
-    this.smallCube.forEach(item => {
+    this.cubes.forEach(item => {
       if (touchCube.position[axis] === item.position[axis]) {
         allPromise.push(this.moveCube(item, vec3, direction))
       }
     })
     await Promise.all(allPromise)
     this.clearState()
+    this.resetCubes()
   }
 
   clearState () {
@@ -232,10 +243,20 @@ class CreepCube extends Base {
         },
         complete: () => {
           const p = cube.position
+          cube.scale.set(1, 1, 1)
           cube.position.set(Math.round(p.x), Math.round(p.y), Math.round(p.z))
           resolve()
         }
       })
+    })
+  }
+
+  resetCubes () {
+    const map = {}
+    const toString = (vec3: THREE.Vector3) => `x${vec3.x}y${vec3.y}z${vec3.z}`
+    this.cubes.forEach(cube => map[toString(cube.position)] = cube)
+    this.coordinate.forEach((vec3, index) => {
+      this.cubes[index] = map[toString(vec3)]
     })
   }
 
@@ -249,7 +270,7 @@ class CreepCube extends Base {
   onMouseDown (e: MouseEvent | TouchEvent) {
     this.getMouseSite(e)
     this.raycaster.setFromCamera(this.mouse, this.camera)
-    const intersects = this.raycaster.intersectObjects([this.cube])
+    const intersects = this.raycaster.intersectObjects([this.box])
     this.controls.enabled = !intersects.length
     // 兼容移动端
     this.onMouseMove(e)
@@ -265,10 +286,10 @@ class CreepCube extends Base {
   }
 
   onMouseMove (e: MouseEvent | TouchEvent) {
-    if (!this.cube) return
+    if (!this.box) return
     this.getMouseSite(e)
     this.raycaster.setFromCamera(this.mouse, this.camera)
-    const intersects = this.raycaster.intersectObjects(this.cube.children)
+    const intersects = this.raycaster.intersectObjects(this.box.children)
     this.intersect1 = intersects[0]
     this.intersect2 = intersects[1]
     if (this.intersect1 && !this.isRotating && this.startPoint) {
@@ -287,29 +308,29 @@ class CreepCube extends Base {
 
   async shuffleCube () {
     this.controls.autoRotate = true
-    this.inp1.disabled = true
-    this.btn1.disabled = true
-    this.btn2.disabled = true
+    this['inp1'].disabled = true
+    this['btn1'].disabled = true
+    this['btn2'].disabled = true
     debug.rotateTime = 150
-    const count = debug.level * 5 + 5
+    const count = debug.level * 5 + 10
     for (let i = 0; i < count; i++) {
       const axis = ['x', 'y', 'z'][i % 3]
       await this.rotateCube(
-        this.smallCube[Math.random() * this.smallCube.length >> 0],
+        this.cubes[Math.random() * this.cubes.length >> 0],
         `${axis}${Math.random() - 0.5 > 0 ? '+' : '-'}` as keyof typeof Axes,
         Math.random() - 0.5 > 0 ? 1 : -1
       )
     }
     this.controls.autoRotate = false
-    this.inp1.disabled = false
-    this.btn1.disabled = false
-    this.btn2.disabled = false
+    this['inp1'].disabled = false
+    this['btn1'].disabled = false
+    this['btn2'].disabled = false
     debug.rotateTime = 300
   }
 
   initDebug () {
     const f1 = pane.addFolder({ title: '选项' })
-    this.inp1 = f1.addInput(debug, 'level', {
+    this['inp1'] = f1.addInput(debug, 'level', {
       label: '难度',
       options: {
         '二阶': 2,
@@ -326,17 +347,57 @@ class CreepCube extends Base {
       this.camera.lookAt(0, 0, 0)
     })
     const f2 = pane.addFolder({ title: '操作' })
-    this.btn1 = f2.addButton({
-      title: '重置',
+    this['btn1'] = f2.addButton({
+      title: 'Reset 重置',
     }).on('click', () => {
       this.initCube(debug.level)
     })
-    this.btn2 = f2.addButton({
-      title: '打乱',
+    this['btn2'] = f2.addButton({
+      title: 'Shuffle 打乱',
     }).on('click', () => {
       this.shuffleCube()
     })
+    this['btn3'] = f2.addButton({
+      title: 'Solve 还原',
+      disabled: true
+    }).on('click', () => {
+      this.shuffleCube()
+    })
+    f2.addButton({ title: 'R' }).on('click', () => {
+      this.rotateCube(this.cubes[26], 'x+', 1)
+    })
+    f2.addButton({ title: 'R\'' }).on('click', () => {
+      this.rotateCube(this.cubes[26], 'x+', -1)
+    })
+    f2.addButton({ title: 'L' }).on('click', () => {
+      this.rotateCube(this.cubes[24], 'x-', 1)
+    })
+    f2.addButton({ title: 'L\'' }).on('click', () => {
+      this.rotateCube(this.cubes[24], 'x-', -1)
+    })
+    f2.addButton({ title: 'U' }).on('click', () => {
+      this.rotateCube(this.cubes[26], 'y+', 1)
+    })
+    f2.addButton({ title: 'U\'' }).on('click', () => {
+      this.rotateCube(this.cubes[26], 'y+', -1)
+    })
+    f2.addButton({ title: 'D' }).on('click', () => {
+      this.rotateCube(this.cubes[8], 'y-', 1)
+    })
+    f2.addButton({ title: 'D\'' }).on('click', () => {
+      this.rotateCube(this.cubes[8], 'y-', -1)
+    })
+    f2.addButton({ title: 'F' }).on('click', () => {
+      this.rotateCube(this.cubes[26], 'z+', 1)
+    })
+    f2.addButton({ title: 'F\'' }).on('click', () => {
+      this.rotateCube(this.cubes[26], 'z+', -1)
+    })
+    f2.addButton({ title: 'B' }).on('click', () => {
+      this.rotateCube(this.cubes[20], 'z-', 1)
+    })
+    f2.addButton({ title: 'B\'' }).on('click', () => {
+      this.rotateCube(this.cubes[20], 'z-', -1)
+    })
   }
 }
-
-new CreepCube()

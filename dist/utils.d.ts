@@ -18,4 +18,4 @@ export declare const Axes: {
     'z-': THREE.Vector3;
 };
 export declare const colors: string[];
-export declare const getCubeFace: (color: string) => HTMLCanvasElement;
+export declare const getFaceColor: (color: string, gutter?: number, radius?: number, logo?: boolean) => HTMLCanvasElement | Promise<HTMLCanvasElement>;
