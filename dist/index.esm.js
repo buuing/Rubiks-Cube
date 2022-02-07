@@ -45022,12 +45022,12 @@ var roundRectByArc = function (ctx) {
     ctx.closePath();
 };
 var colors = [
-    '#4772f5',
-    '#359049',
-    '#c7472e',
-    '#ee6c15',
-    '#f4c812',
-    '#e5e5e5',
+    '#3b81f5',
+    '#029c56',
+    '#d94335',
+    '#e66f00',
+    '#f3b30a',
+    '#f4f4f4', // 白色
 ];
 var getFaceColor = function (color, gutter, radius, logo) {
     if (gutter === void 0) { gutter = 5; }
@@ -52182,7 +52182,7 @@ var debug = {
 };
 var CreepCube = /** @class */ (function (_super) {
     __extends(CreepCube, _super);
-    function CreepCube() {
+    function CreepCube(config) {
         var _this = _super.call(this) || this;
         _this.intersect1 = null;
         _this.intersect2 = null;
@@ -52195,7 +52195,7 @@ var CreepCube = /** @class */ (function (_super) {
         _this.isSolving = false;
         _this.mouse = new Vector2(0, 0);
         _this.raycaster = new Raycaster();
-        _this.cubes = [];
+        _this.children = [];
         _this.coordinate = [];
         _this.cubeSize = 2;
         _this.prevTime = 0;
@@ -52217,12 +52217,12 @@ var CreepCube = /** @class */ (function (_super) {
     CreepCube.prototype.initCube = function (level) {
         if (level === void 0) { level = 3; }
         return __awaiter(this, void 0, void 0, function () {
-            var box, size, gutter, radius, w, h, d, offsetWidth, offsetHeight, offsetDepth, geometry, materials, defaultMaterial, i, j, index, currMaterial, mesh, outside;
+            var mesh, size, gutter, radius, w, h, d, offsetWidth, offsetHeight, offsetDepth, geometry, materials, defaultMaterial, i, j, index, currMaterial, mesh_1, outside;
             return __generator(this, function (_a) {
-                this.box && this.scene.remove(this.box);
-                this.cubes = [];
-                box = this.box = new Group();
-                this.scene.add(box);
+                this.mesh && this.scene.remove(this.mesh);
+                this.children = [];
+                mesh = this.mesh = new Group();
+                this.scene.add(mesh);
                 size = this.cubeSize, gutter = 5, radius = 10;
                 w = level, h = level, d = level;
                 offsetWidth = w * size / 2 - size / 2;
@@ -52252,12 +52252,12 @@ var CreepCube = /** @class */ (function (_super) {
                             j + w >= w * h,
                             j < w,
                         ], materials, defaultMaterial);
-                        mesh = new Mesh(geometry, currMaterial);
-                        mesh.position.set((j % w) * size - offsetWidth, size * i - offsetDepth, (j / w >> 0) * size - offsetHeight);
-                        mesh.name = String(index);
-                        this.box.add(mesh);
-                        this.cubes.push(mesh);
-                        this.coordinate[index] = mesh.position.clone();
+                        mesh_1 = new Mesh(geometry, currMaterial);
+                        mesh_1.position.set((j % w) * size - offsetWidth, size * i - offsetDepth, (j / w >> 0) * size - offsetHeight);
+                        mesh_1.name = String(index);
+                        this.mesh.add(mesh_1);
+                        this.children.push(mesh_1);
+                        this.coordinate[index] = mesh_1.position.clone();
                     }
                 }
                 outside = new Mesh(new BoxGeometry(size * w + 0.01, size * d + 0.01, size * h + 0.01), new MeshBasicMaterial({
@@ -52265,7 +52265,7 @@ var CreepCube = /** @class */ (function (_super) {
                     opacity: 0,
                     transparent: true
                 }));
-                box.add(outside);
+                mesh.add(outside);
                 return [2 /*return*/];
             });
         });
@@ -52363,7 +52363,7 @@ var CreepCube = /** @class */ (function (_super) {
         }
         storey = sort > 0 ? storey : lev - storey - 1;
         var rule = rules[axis][storey];
-        return this.cubes.filter(rule);
+        return this.children.filter(rule);
     };
     /**
      * 旋转逻辑
@@ -52383,7 +52383,7 @@ var CreepCube = /** @class */ (function (_super) {
                         if (!vec3)
                             return [2 /*return*/, this.clearState()];
                         allPromise = [];
-                        this.cubes.forEach(function (item) {
+                        this.children.forEach(function (item) {
                             if (touchCube.position[axis] === item.position[axis]) {
                                 allPromise.push(_this.moveCube(item, vec3, direction));
                             }
@@ -52431,9 +52431,9 @@ var CreepCube = /** @class */ (function (_super) {
         var _this = this;
         var map = {};
         var toString = function (vec3) { return "x".concat(vec3.x, "y").concat(vec3.y, "z").concat(vec3.z); };
-        this.cubes.forEach(function (cube) { return map[toString(cube.position)] = cube; });
+        this.children.forEach(function (cube) { return map[toString(cube.position)] = cube; });
         this.coordinate.forEach(function (vec3, index) {
-            _this.cubes[index] = map[toString(vec3)];
+            _this.children[index] = map[toString(vec3)];
         });
     };
     CreepCube.prototype.getMouseSite = function (e) {
@@ -52446,7 +52446,7 @@ var CreepCube = /** @class */ (function (_super) {
         var _a;
         this.getMouseSite(e);
         this.raycaster.setFromCamera(this.mouse, this.camera);
-        var intersects = this.raycaster.intersectObjects([this.box]);
+        var intersects = this.raycaster.intersectObjects([this.mesh]);
         this.controls.enabled = !intersects.length;
         // 兼容移动端
         this.onMouseMove(e);
@@ -52461,11 +52461,11 @@ var CreepCube = /** @class */ (function (_super) {
         }
     };
     CreepCube.prototype.onMouseMove = function (e) {
-        if (!this.box)
+        if (!this.mesh)
             return;
         this.getMouseSite(e);
         this.raycaster.setFromCamera(this.mouse, this.camera);
-        var intersects = this.raycaster.intersectObjects(this.box.children);
+        var intersects = this.raycaster.intersectObjects(this.mesh.children);
         this.intersect1 = intersects[0];
         this.intersect2 = intersects[1];
         if (this.intersect1 && !this.isRotating && this.startPoint) {
@@ -52486,7 +52486,7 @@ var CreepCube = /** @class */ (function (_super) {
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
-                        this.controls.autoRotate = true;
+                        // this.controls.autoRotate = true
                         this['inp1'].disabled = true;
                         this['btn1'].disabled = true;
                         this['btn2'].disabled = true;
@@ -52497,7 +52497,7 @@ var CreepCube = /** @class */ (function (_super) {
                     case 1:
                         if (!(i < count)) return [3 /*break*/, 4];
                         axis = ['x', 'y', 'z'][i % 3];
-                        return [4 /*yield*/, this.rotateCube(this.cubes[Math.random() * this.cubes.length >> 0], "".concat(axis).concat(Math.random() - 0.5 > 0 ? '+' : '-'), Math.random() - 0.5 > 0 ? 1 : -1)];
+                        return [4 /*yield*/, this.rotateCube(this.children[Math.random() * this.children.length >> 0], "".concat(axis).concat(Math.random() - 0.5 > 0 ? '+' : '-'), Math.random() - 0.5 > 0 ? 1 : -1)];
                     case 2:
                         _a.sent();
                         _a.label = 3;
@@ -52505,7 +52505,7 @@ var CreepCube = /** @class */ (function (_super) {
                         i++;
                         return [3 /*break*/, 1];
                     case 4:
-                        this.controls.autoRotate = false;
+                        // this.controls.autoRotate = false
                         this['inp1'].disabled = false;
                         this['btn1'].disabled = false;
                         this['btn2'].disabled = false;
@@ -52552,41 +52552,66 @@ var CreepCube = /** @class */ (function (_super) {
             _this.shuffleCube();
         });
         f2.addButton({ title: 'R' }).on('click', function () {
-            _this.rotateCube(_this.cubes[26], 'x+', 1);
+            _this.rotateCube(_this.children[26], 'x+', 1);
         });
         f2.addButton({ title: 'R\'' }).on('click', function () {
-            _this.rotateCube(_this.cubes[26], 'x+', -1);
+            _this.rotateCube(_this.children[26], 'x+', -1);
         });
         f2.addButton({ title: 'L' }).on('click', function () {
-            _this.rotateCube(_this.cubes[24], 'x-', 1);
+            _this.rotateCube(_this.children[24], 'x-', 1);
         });
         f2.addButton({ title: 'L\'' }).on('click', function () {
-            _this.rotateCube(_this.cubes[24], 'x-', -1);
+            _this.rotateCube(_this.children[24], 'x-', -1);
         });
         f2.addButton({ title: 'U' }).on('click', function () {
-            _this.rotateCube(_this.cubes[26], 'y+', 1);
+            _this.rotateCube(_this.children[26], 'y+', 1);
         });
         f2.addButton({ title: 'U\'' }).on('click', function () {
-            _this.rotateCube(_this.cubes[26], 'y+', -1);
+            _this.rotateCube(_this.children[26], 'y+', -1);
         });
         f2.addButton({ title: 'D' }).on('click', function () {
-            _this.rotateCube(_this.cubes[8], 'y-', 1);
+            _this.rotateCube(_this.children[8], 'y-', 1);
         });
         f2.addButton({ title: 'D\'' }).on('click', function () {
-            _this.rotateCube(_this.cubes[8], 'y-', -1);
+            _this.rotateCube(_this.children[8], 'y-', -1);
         });
         f2.addButton({ title: 'F' }).on('click', function () {
-            _this.rotateCube(_this.cubes[26], 'z+', 1);
+            _this.rotateCube(_this.children[26], 'z+', 1);
         });
         f2.addButton({ title: 'F\'' }).on('click', function () {
-            _this.rotateCube(_this.cubes[26], 'z+', -1);
+            _this.rotateCube(_this.children[26], 'z+', -1);
         });
         f2.addButton({ title: 'B' }).on('click', function () {
-            _this.rotateCube(_this.cubes[20], 'z-', 1);
+            _this.rotateCube(_this.children[20], 'z-', 1);
         });
         f2.addButton({ title: 'B\'' }).on('click', function () {
-            _this.rotateCube(_this.cubes[20], 'z-', -1);
+            _this.rotateCube(_this.children[20], 'z-', -1);
         });
+        f2.addButton({ title: 'x' }).on('click', function () { return __awaiter(_this, void 0, void 0, function () {
+            var vec3, direction, allPromise;
+            var _this = this;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0:
+                        if (this.isRotating)
+                            return [2 /*return*/];
+                        this.isRotating = true;
+                        vec3 = Axes['x+'];
+                        direction = 1;
+                        allPromise = [];
+                        this.children.forEach(function (item) {
+                            allPromise.push(_this.moveCube(item, vec3, direction));
+                        });
+                        return [4 /*yield*/, Promise.all(allPromise)];
+                    case 1:
+                        _a.sent();
+                        this.isRotating = false;
+                        this.clearState();
+                        this.resetCubes();
+                        return [2 /*return*/];
+                }
+            });
+        }); });
     };
     return CreepCube;
 }(Base));

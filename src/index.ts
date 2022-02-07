@@ -22,13 +22,15 @@ export default class CreepCube extends Base {
   isSolving = false
   mouse = new THREE.Vector2(0, 0)
   raycaster = new THREE.Raycaster()
-  box!: THREE.Group
-  cubes: THREE.Mesh[] = []
+  mesh!: THREE.Group
+  children: THREE.Mesh[] = []
   coordinate: THREE.Vector3[] = []
   cubeSize = 2
   prevTime = 0
 
-  constructor () {
+  constructor (config = {
+    level: 3
+  }) {
     super()
     this.initDebug()
     this.initCube()
@@ -52,10 +54,10 @@ export default class CreepCube extends Base {
   }
 
   async initCube (level = 3) {
-    this.box && this.scene.remove(this.box)
-    this.cubes = []
-    const box = this.box = new THREE.Group()
-    this.scene.add(box)
+    this.mesh && this.scene.remove(this.mesh)
+    this.children = []
+    const mesh = this.mesh = new THREE.Group()
+    this.scene.add(mesh)
     // 小立方体
     const size = this.cubeSize, gutter = 5, radius = 10
     const w = level, h = level, d = level
@@ -94,8 +96,8 @@ export default class CreepCube extends Base {
           (j / w >> 0) * size - offsetHeight,
         )
         mesh.name = String(index)
-        this.box.add(mesh)
-        this.cubes.push(mesh)
+        this.mesh.add(mesh)
+        this.children.push(mesh)
         this.coordinate[index] = mesh.position.clone()
       }
     }
@@ -112,7 +114,7 @@ export default class CreepCube extends Base {
         transparent: true
       })
     )
-    box.add(outside)
+    mesh.add(outside)
   }
 
   // 旋转逻辑
@@ -193,7 +195,7 @@ export default class CreepCube extends Base {
     }
     storey = sort > 0 ? storey : lev - storey - 1
     const rule = rules[axis][storey]
-    return this.cubes.filter(rule)
+    return this.children.filter(rule)
   }
 
   /**
@@ -206,7 +208,7 @@ export default class CreepCube extends Base {
     const axis = rotationAxis.slice(0, 1)
     if (!vec3) return this.clearState()
     const allPromise: Promise<void>[] = []
-    this.cubes.forEach(item => {
+    this.children.forEach(item => {
       if (touchCube.position[axis] === item.position[axis]) {
         allPromise.push(this.moveCube(item, vec3, direction))
       }
@@ -254,9 +256,9 @@ export default class CreepCube extends Base {
   resetCubes () {
     const map = {}
     const toString = (vec3: THREE.Vector3) => `x${vec3.x}y${vec3.y}z${vec3.z}`
-    this.cubes.forEach(cube => map[toString(cube.position)] = cube)
+    this.children.forEach(cube => map[toString(cube.position)] = cube)
     this.coordinate.forEach((vec3, index) => {
-      this.cubes[index] = map[toString(vec3)]
+      this.children[index] = map[toString(vec3)]
     })
   }
 
@@ -270,7 +272,7 @@ export default class CreepCube extends Base {
   onMouseDown (e: MouseEvent | TouchEvent) {
     this.getMouseSite(e)
     this.raycaster.setFromCamera(this.mouse, this.camera)
-    const intersects = this.raycaster.intersectObjects([this.box])
+    const intersects = this.raycaster.intersectObjects([this.mesh])
     this.controls.enabled = !intersects.length
     // 兼容移动端
     this.onMouseMove(e)
@@ -286,10 +288,10 @@ export default class CreepCube extends Base {
   }
 
   onMouseMove (e: MouseEvent | TouchEvent) {
-    if (!this.box) return
+    if (!this.mesh) return
     this.getMouseSite(e)
     this.raycaster.setFromCamera(this.mouse, this.camera)
-    const intersects = this.raycaster.intersectObjects(this.box.children)
+    const intersects = this.raycaster.intersectObjects(this.mesh.children)
     this.intersect1 = intersects[0]
     this.intersect2 = intersects[1]
     if (this.intersect1 && !this.isRotating && this.startPoint) {
@@ -307,7 +309,7 @@ export default class CreepCube extends Base {
   }
 
   async shuffleCube () {
-    this.controls.autoRotate = true
+    // this.controls.autoRotate = true
     this['inp1'].disabled = true
     this['btn1'].disabled = true
     this['btn2'].disabled = true
@@ -316,12 +318,12 @@ export default class CreepCube extends Base {
     for (let i = 0; i < count; i++) {
       const axis = ['x', 'y', 'z'][i % 3]
       await this.rotateCube(
-        this.cubes[Math.random() * this.cubes.length >> 0],
+        this.children[Math.random() * this.children.length >> 0],
         `${axis}${Math.random() - 0.5 > 0 ? '+' : '-'}` as keyof typeof Axes,
         Math.random() - 0.5 > 0 ? 1 : -1
       )
     }
-    this.controls.autoRotate = false
+    // this.controls.autoRotate = false
     this['inp1'].disabled = false
     this['btn1'].disabled = false
     this['btn2'].disabled = false
@@ -364,40 +366,54 @@ export default class CreepCube extends Base {
       this.shuffleCube()
     })
     f2.addButton({ title: 'R' }).on('click', () => {
-      this.rotateCube(this.cubes[26], 'x+', 1)
+      this.rotateCube(this.children[26], 'x+', 1)
     })
     f2.addButton({ title: 'R\'' }).on('click', () => {
-      this.rotateCube(this.cubes[26], 'x+', -1)
+      this.rotateCube(this.children[26], 'x+', -1)
     })
     f2.addButton({ title: 'L' }).on('click', () => {
-      this.rotateCube(this.cubes[24], 'x-', 1)
+      this.rotateCube(this.children[24], 'x-', 1)
     })
     f2.addButton({ title: 'L\'' }).on('click', () => {
-      this.rotateCube(this.cubes[24], 'x-', -1)
+      this.rotateCube(this.children[24], 'x-', -1)
     })
     f2.addButton({ title: 'U' }).on('click', () => {
-      this.rotateCube(this.cubes[26], 'y+', 1)
+      this.rotateCube(this.children[26], 'y+', 1)
     })
     f2.addButton({ title: 'U\'' }).on('click', () => {
-      this.rotateCube(this.cubes[26], 'y+', -1)
+      this.rotateCube(this.children[26], 'y+', -1)
     })
     f2.addButton({ title: 'D' }).on('click', () => {
-      this.rotateCube(this.cubes[8], 'y-', 1)
+      this.rotateCube(this.children[8], 'y-', 1)
     })
     f2.addButton({ title: 'D\'' }).on('click', () => {
-      this.rotateCube(this.cubes[8], 'y-', -1)
+      this.rotateCube(this.children[8], 'y-', -1)
     })
     f2.addButton({ title: 'F' }).on('click', () => {
-      this.rotateCube(this.cubes[26], 'z+', 1)
+      this.rotateCube(this.children[26], 'z+', 1)
     })
     f2.addButton({ title: 'F\'' }).on('click', () => {
-      this.rotateCube(this.cubes[26], 'z+', -1)
+      this.rotateCube(this.children[26], 'z+', -1)
     })
     f2.addButton({ title: 'B' }).on('click', () => {
-      this.rotateCube(this.cubes[20], 'z-', 1)
+      this.rotateCube(this.children[20], 'z-', 1)
     })
     f2.addButton({ title: 'B\'' }).on('click', () => {
-      this.rotateCube(this.cubes[20], 'z-', -1)
+      this.rotateCube(this.children[20], 'z-', -1)
+    })
+    f2.addButton({ title: 'x' }).on('click', async () => {
+      if (this.isRotating) return
+      this.isRotating = true
+      const vec3 = Axes['x+']
+      const direction = 1
+      const allPromise: Promise<void>[] = []
+      this.children.forEach(item => {
+        allPromise.push(this.moveCube(item, vec3, direction))
+      })
+      await Promise.all(allPromise)
+      this.isRotating = false
+      this.clearState()
+      this.resetCubes()
     })
   }
 }

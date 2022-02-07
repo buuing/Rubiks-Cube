@@ -58,12 +58,12 @@ const roundRectByArc = (ctx: CanvasRenderingContext2D, ...[x, y, w, h, r]: numbe
 }
 
 export const colors = [
-  '#4772f5',
-  '#359049',
-  '#c7472e',
-  '#ee6c15',
-  '#f4c812',
-  '#e5e5e5',
+  '#3b81f5', // 蓝色
+  '#029c56', // 绿色
+  '#d94335', // 红色
+  '#e66f00', // 橘色
+  '#f3b30a', // 黄色
+  '#f4f4f4', // 白色
 ]
 
 export const getFaceColor = (

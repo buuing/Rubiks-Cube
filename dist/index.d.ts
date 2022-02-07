@@ -13,12 +13,14 @@ export default class CreepCube extends Base {
     isSolving: boolean;
     mouse: THREE.Vector2;
     raycaster: THREE.Raycaster;
-    box: THREE.Group;
-    cubes: THREE.Mesh[];
+    mesh: THREE.Group;
+    children: THREE.Mesh[];
     coordinate: THREE.Vector3[];
     cubeSize: number;
     prevTime: number;
-    constructor();
+    constructor(config?: {
+        level: number;
+    });
     computeMaterial(rules: boolean[], materials: THREE.MeshBasicMaterial[], defaultMaterial: THREE.MeshBasicMaterial, logoMaterial?: THREE.MeshBasicMaterial): THREE.MeshBasicMaterial[];
     initCube(level?: number): Promise<void>;
     computeRotation(): void;
