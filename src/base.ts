@@ -2,10 +2,16 @@ import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
 
 export default class Base {
+  width: number
+  height: number
+  renderer!: THREE.WebGLRenderer
+  scene!: THREE.Scene
+  camera!: THREE.PerspectiveCamera
+  controls!: OrbitControls
+
   constructor () {
     this.width = window.innerWidth
     this.height = window.innerHeight
-    this.clock = new THREE.Clock()
     this.initRenderer()
     this.initScene()
     this.initCamera()
@@ -13,7 +19,7 @@ export default class Base {
     this.render()
   }
   // 创建渲染器
-  initRenderer (canvas) {
+  initRenderer () {
     const renderer = this.renderer = new THREE.WebGLRenderer({
       antialias: true,
       alpha: true
@@ -25,7 +31,6 @@ export default class Base {
   // 创建场景
   initScene () {
     const scene = this.scene = new THREE.Scene()
-    scene.add(new THREE.AxesHelper(10))
   }
   // 创建相机
   initCamera () {
@@ -43,9 +48,8 @@ export default class Base {
     const { renderer, camera } = this
     const controls = this.controls = new OrbitControls(camera, renderer.domElement)
     controls.target = new THREE.Vector3(0, 0, 0)
-    controls.enableZoom = true
+    controls.enableZoom = false
     controls.rotateSpeed = 1
-    // controls.enableDamping = true
     controls.update()
   }
   // 渲染

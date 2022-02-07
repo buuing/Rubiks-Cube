@@ -1,6 +1,7 @@
 import * as THREE from 'three'
+import { LOGO } from './config'
 
-export const rotateAroundWorldAxis = (origin, vector, radius) => {
+export const rotateAroundWorldAxis = (origin: THREE.Vector3, vector: THREE.Vector3, radius: number) => {
   vector.normalize()
   const u = vector.x
   const v = vector.y
@@ -18,18 +19,11 @@ export const rotateAroundWorldAxis = (origin, vector, radius) => {
   return matrix4
 }
 
+export enum AxesEnum { x, y, z }
+
 export const XYZ_VALUE = 0 ^ 1 ^ 2
 
-export const AxesEnum = {
-  0: 'x',
-  1: 'y',
-  2: 'z',
-  'x': 0,
-  'y': 1,
-  'z': 2,
-}
-
-export const Axes = {
+export const AxesVec3 = {
   'x+': new THREE.Vector3(1, 0, 0),
   'x-': new THREE.Vector3(-1, 0, 0),
   'y+': new THREE.Vector3(0, 1, 0),
@@ -38,7 +32,7 @@ export const Axes = {
   'z-': new THREE.Vector3(0, 0, -1)
 }
 
-const roundRectByArc = (ctx, ...[x, y, w, h, r]) => {
+const roundRectByArc = (ctx: CanvasRenderingContext2D, ...[x, y, w, h, r]: number[]) => {
   const min = Math.min(w, h), PI = Math.PI
   if (r > min / 2) r = min / 2
   ctx.beginPath()
@@ -56,23 +50,45 @@ const roundRectByArc = (ctx, ...[x, y, w, h, r]) => {
 }
 
 export const colors = [
-  '#359049',
-  '#4772f5',
-  '#c7472e',
-  '#ee6c15',
-  '#ffffff',
-  '#f4c812',
+  '#3b81f5', // 蓝色
+  '#029c56', // 绿色
+  '#d94335', // 红色
+  '#e66f00', // 橘色
+  '#f3b30a', // 黄色
+  '#f4f4f4', // 白色
 ]
 
-export const getCubeFace = (color) => {
-  const size = 256, gutter = 10, radius = 15
+export const getFaceColor = (
+  color: string,
+  radius = 10,
+  gutter = 5,
+  gutterColor = '#000',
+  text = ''
+): HTMLCanvasElement => {
+  const size = 256
   const canvas = document.createElement('canvas')
   canvas.width = canvas.height = size
-  const ctx = canvas.getContext('2d')
-  ctx.fillStyle = '#000'
+  const ctx = canvas.getContext('2d')!
+  ctx.fillStyle = gutterColor
   ctx.fillRect(0, 0, size, size)
   ctx.fillStyle = color
   roundRectByArc(ctx, gutter, gutter, size - gutter * 2, size - gutter * 2, radius)
   ctx.fill()
+  if (text) {
+    ctx.fillStyle = gutterColor
+    const h = size / 2
+    ctx.font = `${h}px Microsoft YaHei`
+    ctx.textBaseline = 'top'
+    const w = ctx.measureText(text).width
+    ctx.fillText(text, size / 2 - w / 2, size / 2 - h / 2)
+  }
   return canvas
+  // else return new Promise((resolve, reject) => {
+  //   const img = new Image()
+  //   img.onload = () => {
+  //     ctx.drawImage(img, 0, 0, size, size)
+  //     resolve(canvas)
+  //   }
+  //   img.src = LOGO
+  // })
 }
