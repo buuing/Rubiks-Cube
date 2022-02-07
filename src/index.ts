@@ -68,18 +68,18 @@ export default class CreepCube extends Base {
     const offsetDepth = d * size / 2 - size / 2
     const geometry = new THREE.BoxGeometry(size, size, size)
     // 材质
+    const materials = colors.map(color => {
+      const canvas = getFaceColor(color, radius, gutter, debug.gutterColor)
+      const texture = new THREE.Texture(canvas)
+      texture.needsUpdate = true
+      texture.minFilter = THREE.NearestFilter
+      texture.generateMipmaps = false
+      return new THREE.MeshBasicMaterial({ map: texture })
+    })
     const defaultMaterial = new THREE.MeshBasicMaterial({ color: debug.gutterColor })
     for (let i = 0; i < d; i++) {
       for (let j = 0; j < w * h; j++) {
         const index = i * w * h + j
-const materials = colors.map(color => {
-  const canvas = getFaceColor(color, radius, gutter, debug.gutterColor, String(index))
-  const texture = new THREE.Texture(canvas)
-  texture.needsUpdate = true
-  texture.minFilter = THREE.NearestFilter
-  texture.generateMipmaps = false
-  return new THREE.MeshBasicMaterial({ map: texture })
-})
         const currMaterial = this.computeMaterial([
           (j + 1) % w === 0,
           j % w === 0,

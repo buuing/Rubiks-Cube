@@ -52226,7 +52226,7 @@
         };
         CreepCube.prototype.initCube = function () {
             return __awaiter(this, void 0, void 0, function () {
-                var mesh, level, gutter, radius, size, w, h, d, offsetWidth, offsetHeight, offsetDepth, geometry, defaultMaterial, i, _loop_1, this_1, j, outside;
+                var mesh, level, gutter, radius, size, w, h, d, offsetWidth, offsetHeight, offsetDepth, geometry, materials, defaultMaterial, i, j, index, currMaterial, mesh_1, outside;
                 return __generator(this, function (_a) {
                     this.mesh && this.scene.remove(this.mesh);
                     this.children = [];
@@ -52239,19 +52239,19 @@
                     offsetHeight = h * size / 2 - size / 2;
                     offsetDepth = d * size / 2 - size / 2;
                     geometry = new BoxGeometry(size, size, size);
+                    materials = colors.map(function (color) {
+                        var canvas = getFaceColor(color, radius, gutter, debug.gutterColor);
+                        var texture = new Texture(canvas);
+                        texture.needsUpdate = true;
+                        texture.minFilter = NearestFilter;
+                        texture.generateMipmaps = false;
+                        return new MeshBasicMaterial({ map: texture });
+                    });
                     defaultMaterial = new MeshBasicMaterial({ color: debug.gutterColor });
                     for (i = 0; i < d; i++) {
-                        _loop_1 = function (j) {
-                            var index = i * w * h + j;
-                            var materials = colors.map(function (color) {
-                                var canvas = getFaceColor(color, radius, gutter, debug.gutterColor, String(index));
-                                var texture = new Texture(canvas);
-                                texture.needsUpdate = true;
-                                texture.minFilter = NearestFilter;
-                                texture.generateMipmaps = false;
-                                return new MeshBasicMaterial({ map: texture });
-                            });
-                            var currMaterial = this_1.computeMaterial([
+                        for (j = 0; j < w * h; j++) {
+                            index = i * w * h + j;
+                            currMaterial = this.computeMaterial([
                                 (j + 1) % w === 0,
                                 j % w === 0,
                                 i === d - 1,
@@ -52259,16 +52259,12 @@
                                 j + w >= w * h,
                                 j < w,
                             ], materials, defaultMaterial);
-                            var mesh_1 = new Mesh(geometry, currMaterial);
+                            mesh_1 = new Mesh(geometry, currMaterial);
                             mesh_1.position.set((j % w) * size - offsetWidth, size * i - offsetDepth, (j / w >> 0) * size - offsetHeight);
                             mesh_1.name = String(index);
-                            this_1.mesh.add(mesh_1);
-                            this_1.children.push(mesh_1);
-                            this_1.coordinate[index] = mesh_1.position.clone();
-                        };
-                        this_1 = this;
-                        for (j = 0; j < w * h; j++) {
-                            _loop_1(j);
+                            this.mesh.add(mesh_1);
+                            this.children.push(mesh_1);
+                            this.coordinate[index] = mesh_1.position.clone();
                         }
                     }
                     outside = new Mesh(new BoxGeometry(size * w + 0.01, size * d + 0.01, size * h + 0.01), new MeshBasicMaterial({
@@ -52363,14 +52359,14 @@
                 y: [],
                 z: [],
             };
-            var _loop_2 = function (k) {
+            var _loop_1 = function (k) {
                 var _k = lev - k - 1;
                 rules['x'][k] = function (n, i) { return i % lev === _k; };
                 rules['y'][k] = function (n, i) { return i / squa >> 0 === _k; };
                 rules['z'][k] = function (n, i) { return (i % 9) / lev >> 0 === _k; };
             };
             for (var k = 0; k < lev; k++) {
-                _loop_2(k);
+                _loop_1(k);
             }
             storey = sort > 0 ? storey : lev - storey - 1;
             var rule = rules[axis][storey];
